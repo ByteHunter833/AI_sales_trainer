@@ -1,0 +1,15 @@
+.env
+backend/.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.db
+*.db-shm
+*.db-wal
+node_modules/
+dist/
+test-results/
+.runtime/
+*.tsbuildinfo
+playwright-report/

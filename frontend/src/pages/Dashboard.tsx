@@ -1,0 +1,35 @@
+import { useEffect, useState } from 'react'
+import { ArrowRight, ArrowUpRight, AudioLines, BarChart3, Clock3, Compass, Plus, Sparkles, Target, TrendingUp, Wallet, ShieldCheck, GitCompareArrows, Handshake } from 'lucide-react'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { api } from '../services/api'
+import { dateLabel, scenarios, skillLabels, type DashboardData } from '../types'
+import { Button, Empty, ErrorBox, go, Loading, SessionTable } from '../components/ui'
+
+const icons = [Wallet, ShieldCheck, GitCompareArrows, Handshake]
+export default function Dashboard() {
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [error, setError] = useState('')
+  function load() { setError(''); api.dashboard().then(setData).catch(e => setError(e.message)) }
+  useEffect(load, [])
+  if (error) return <ErrorBox message={error} retry={load} />
+  if (!data) return <Loading />
+  const stats = [
+    { label: 'Training sessions', value: String(data.total_sessions).padStart(2, '0'), icon: AudioLines, note: 'Every conversation counts', color: 'violet' },
+    { label: 'Average score', value: data.average_score ?? '—', unit: data.average_score !== null ? '/ 100' : '', icon: Target, note: `${data.evaluated_sessions} evaluated sessions`, color: 'green' },
+    { label: 'Time invested', value: Math.floor(data.total_duration_seconds / 60), unit: 'min', icon: Clock3, note: 'Practice that moves you forward', color: 'blue' },
+    { label: 'Improvement', value: data.improvement_percentage === null ? '—' : `${data.improvement_percentage > 0 ? '+' : ''}${data.improvement_percentage}%`, icon: TrendingUp, note: 'Latest score vs. your first', color: 'amber' },
+  ]
+  return <>
+    <div className="page-heading"><div><div className="eyebrow">YOUR PRACTICE. YOUR PROGRESS.</div><h1>Make your next conversation count.</h1><p>A little practice today. A more confident pitch tomorrow.</p></div><Button onClick={() => go('/training')}><Plus size={18} /> New training</Button></div>
+    <section className="hero-panel"><div className="hero-copy"><span className="pill"><span className="tiny-dot" /> Your next breakthrough starts here</span><h2>Great salespeople<br />aren’t born. <em>They practice.</em></h2><p>A realistic customer. A safe space to try.<br />Build the skills to turn conversations into opportunities.</p><Button onClick={() => go('/training')}>Start a conversation <ArrowRight size={17} /></Button><div className="hero-caption"><MicMark /> Voice-powered practice <span>•</span> Personal AI feedback</div></div>
+      <div className="hero-art" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit orbit-three" /><div className="orb"><AudioLines size={76} strokeWidth={1.3} /></div><div className="float-card float-top"><span className="green-icon"><ShieldCheck size={17} /></span><div>Room to learn<small>No pressure. Just progress.</small></div></div><div className="float-card float-bottom"><span className="violet-icon"><Sparkles size={19} /></span><div>Feedback that helps<small>Find your next best move.</small></div></div><div className="star star-one">✦</div><div className="star star-two">✧</div></div>
+    </section>
+    <section className="stat-grid">{stats.map(s => <div className="stat-card" key={s.label}><div className="stat-top"><span>{s.label}</span><span className={`stat-icon ${s.color}`}><s.icon size={17} /></span></div><div className="stat-value">{s.value}<small>{s.unit}</small></div><div className="stat-note">{s.note}</div></div>)}</section>
+    <div className="dashboard-charts"><section className="panel"><div className="panel-heading"><div><h3>Performance over time</h3><p>Small steps. Measurable progress.</p></div><span className="subtle-tag">Last 20 sessions</span></div>{data.trend.length ? <div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}><defs><linearGradient id="trend-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} /><stop offset="100%" stopColor="#818cf8" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="#28282e" vertical={false} strokeDasharray="4 5" /><XAxis dataKey="date" tickFormatter={dateLabel} tick={{ fill: '#8b8b99', fontSize: 11 }} axisLine={false} tickLine={false} /><YAxis domain={[0, 100]} tick={{ fill: '#8b8b99', fontSize: 11 }} axisLine={false} tickLine={false} /><Tooltip contentStyle={{ background: '#202027', border: '1px solid #363641', borderRadius: 12 }} labelFormatter={v => dateLabel(String(v))} /><Area type="monotone" dataKey="score" name="Sales score" stroke="#818cf8" fill="url(#trend-gradient)" strokeWidth={2.5} dot={{ r: 4, fill: '#818cf8' }} /></AreaChart></ResponsiveContainer></div> : <Empty title="Your progress starts with one conversation" text="Complete a training session to see your performance take shape." />}</section>
+      <section className="panel"><div className="panel-heading"><div><h3>Your skill set</h3><p>Five skills. Stronger conversations.</p></div><Compass size={19} className="muted" /></div><div className="skill-list">{Object.entries(skillLabels).map(([key, label]) => <div className="skill-item" key={key}><div><span>{label}</span><strong>{data.skills[key as keyof typeof skillLabels] ?? '—'}<small> / 10</small></strong></div><div className="progress-track"><span style={{ width: `${(data.skills[key as keyof typeof skillLabels] ?? 0) * 10}%` }} /></div></div>)}</div>{!data.evaluated_sessions && <p className="card-footnote">Your first report will reveal where to focus.</p>}</section></div>
+    <section className="section-block"><div className="section-title"><div><h3>A scenario for every sales moment</h3><p>Choose a challenge. Find your confidence.</p></div><button className="text-button" onClick={() => go('/training')}>Explore training <ArrowUpRight size={16} /></button></div><div className="scenario-preview-grid">{scenarios.map((s, i) => { const Icon = icons[i]; return <button className="scenario-preview" key={s.id} onClick={() => go(`/training?scenario=${s.id}`)}><div className={`scenario-icon ${s.color}`}><Icon size={21} /></div><h4>{s.title}</h4><p>{s.description}</p><div>{s.skill}<ArrowRight size={16} /></div></button> })}</div></section>
+    <section className="panel"><div className="panel-heading"><div><h3>Recent training</h3><p>Pick up the lessons from your last conversation.</p></div><button className="text-button" onClick={() => go('/history')}>View history <ArrowRight size={16} /></button></div>{data.recent_sessions.length ? <SessionTable sessions={data.recent_sessions} /> : <Empty title="A fresh start, full of possibility" text="Your sessions and coaching reports will be saved here." action />}</section>
+    <div className="page-footer"><BarChart3 size={14} /> Real conversations. Real feedback. Your own pace.</div>
+  </>
+}
+function MicMark() { return <AudioLines size={13} /> }
